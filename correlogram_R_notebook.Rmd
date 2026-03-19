@@ -1,0 +1,84 @@
+---
+title: "コレログラム解析ノートブック（R版）"
+output: html_document
+---
+
+# 目的
+
+このノートブックは、**R / RStudio 風にコレログラム（自己相関）を用いた時系列解析**を行うための最小構成です。  
+サンプルデータを生成して、時系列プロットとコレログラムを描画します。
+
+## サンプル時系列の作成
+
+```{r}
+set.seed(7)
+
+n <- 240
+time <- 1:n
+
+value <- 0.03 * time +
+  1.4 * sin(2 * pi * time / 24) +
+  0.6 * sin(2 * pi * time / 8) +
+  rnorm(n, mean = 0, sd = 0.5)
+
+df <- data.frame(time = time, value = value)
+head(df)
+```
+
+## 時系列プロット
+
+```{r}
+plot(
+  df$time, df$value, type = "l",
+  main = "Sample Time Series",
+  xlab = "Time",
+  ylab = "Value"
+)
+```
+
+## コレログラム（ACF）
+
+```{r}
+acf(
+  df$value,
+  lag.max = 60,
+  main = "Correlogram (Autocorrelation)"
+)
+```
+
+## 読み方
+
+- ラグ 0 の自己相関は必ず 1
+- 一定間隔でピークが出るなら、そのラグ幅の周期性を疑う
+- この例では **24 付近のラグ** に構造が現れやすい
+
+## 上位ラグの確認
+
+```{r}
+acf_obj <- acf(df$value, lag.max = 60, plot = FALSE)
+
+lag_df <- data.frame(
+  lag = acf_obj$lag[-1] * n,
+  acf = acf_obj$acf[-1]
+)
+
+lag_df$abs_acf <- abs(lag_df$acf)
+lag_df <- lag_df[order(-lag_df$abs_acf), ]
+head(lag_df, 10)
+```
+
+## CSV を自分のデータに差し替える
+
+```{r}
+# mydf <- read.csv("your_timeseries.csv")
+# acf(mydf$value, lag.max = 60, main = "Your Correlogram")
+```
+
+## 参考: notebook でそのまま使える最小コード
+
+```{r}
+x <- df$value
+
+plot(x, type = "l", main = "Time Series")
+acf(x, lag.max = 60, main = "Correlogram")
+```
